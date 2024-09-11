@@ -17,8 +17,8 @@
     - [toJSON](#tojson)
     - [save, fetch, and destroy](#save-fetch-and-destroy)
   - [Views](#views)
-    - [Overview](#overview)
     - [Instantiating Views](#instantiating-views)
+    - [The el Property](#the-el-property)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
@@ -165,7 +165,7 @@ npx http-server -c-1
 
 ### Defining New Model Types
 
-[Example](define-model-type/defineModelType.js)
+[Example](exercises/define-model-type/defineModelType.js)
 
 * Create new Model types by extending Backbone.Model.
 * Argument passed to `extend` method is an object containing configuration of new model type.
@@ -357,7 +357,7 @@ ford.has('year') // false
 
 ### Events
 
-[Demo](demos/demos.js)
+[Demo](exercises/demos/demos.js)
 
 Models raise events when their state changes -> valuable feature.
 
@@ -408,7 +408,7 @@ ford.set('color', 'red') // color changed, something changed
 
 **Custom Model Events**
 
-[Example](custom-events/app.js)
+[Example](exercises/custom-events/app.js)
 
 Powerful tool for decoupling components.
 
@@ -506,7 +506,7 @@ car.get('type') // car
 
 ### Validation
 
-[Example](validation/app.js)
+[Example](exercises/validation/app.js)
 
 Backbone provides two functions for model validation:
 
@@ -613,8 +613,145 @@ console.log(JSON.stringify(attrs)) // "{"type": "car"}"
 
 ## Views
 
-WIP...
+Views serve as interface (bi-directional) between HTML document and Backbone models and collections.
 
-### Overview
+Views make up majority of Backbone code.
+
+Views bind model(s) to document -> provides "glue" between models and document.
+
+Backbone recommends:
+
+- Organize the UI into logical views
+- Where views are backed by models
+- Each view should be updated independently when the model changes, without having to re-render the entire page
+
+Views can handle model change events, and DOM events.
+
+Views depend on models.
+
+Models trigger events that view can handle.
+
+Views also depend on the DOM.
+
+DOM can raise events that view can handle.
+
+**Defining New View Types**
+
+Extend `Backbone.View`. Can create inheritance hierarchy just like with Models.
+
+```javascript
+var VehicleListView = Backbone.View.extend({
+  // properties
+})
+```
+
+Every view has an associated DOM element available in `.el` property.
+
+DOM element is passed to view in constructor or created by the view.
+
+**Views that Create New Elements**
+
+[Example](exercises/views/app.js)
+
+New element defined by id, tagName, className, and attributes:
+
+```javascript
+var V = Backbone.View.extend({
+  tagName: 'li',
+  id: 'thing',
+  className: 'active',
+  attributes: {
+    'data-value': 12345
+  }
+})
+
+var v = new V()
+$('body').prepend(v.el)
+
+// Renders markup
+// <body>
+//   <li data-value="12345" id="thing" class="active"></li>
+// </body>
+```
+
+**Views that Attach to Existing Elements**
+
+[Example](exercises/views2/app.js)
+
+Pass `el` property to view's constructor:
+
+```javascript
+var V = Backbone.View.extend({})
+var v = new V({el: '#test'})
+v.$el.css('background-color', 'CornflowerBlue')
+```
+
+Given the markup with an element of id test:
+```htm
+<div id="test">
+  Test content
+</div>
+```
+
+This would change the test div background to blue.
 
 ### Instantiating Views
+
+[Example](exercises/views3/app.js)
+
+Like Models, to create a new view object, call its constructor function with `new` operator
+
+Simplest case is instance of Backbone.View:
+
+```javascript
+var view = new Backbone.View()
+```
+
+Usually you'll want your own custom view type(s).
+
+```javascript
+var VehicleListView = Backbone.View.extend({})
+var myView = new VehicleListView()
+```
+
+Usually you'll pass a model instance to the view constructor:
+
+```javascript
+var VehicleListView = Backbone.View.extend({})
+var myView = new VehicleListView({
+  model: myModelObject
+})
+```
+
+Any of the below properties will be attached to view object if passed to view constructor:
+
+* model
+* collection
+* el
+* id
+* className
+* tagName
+* attributes
+
+```javascript
+var myModel = new Backbone.Model()
+myModel.set('content', 'this is some content')
+
+// Creates a new DOM element
+var myView = new Backbone.View({
+  model: myModel,
+  className: 'model-object'
+})
+
+$('body').prepend(myView.el)
+
+// Creates markup
+// <body>
+//  <div class="model-object"></div>
+//  <div id="test"> Test content </div>
+// </body>
+```
+
+### The el Property
+
+WIP...
