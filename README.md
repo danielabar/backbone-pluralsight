@@ -5,10 +5,15 @@
 - [Backbone.js Fundamentals](#backbonejs-fundamentals)
   - [Intro](#intro)
   - [Models](#models)
-    - [Overview](#overview)
+    - [Purpose of Models](#purpose-of-models)
     - [Defining New Model Types](#defining-new-model-types)
     - [Instantiating Models](#instantiating-models)
     - [Inheritance](#inheritance)
+    - [Attributes](#attributes)
+    - [Events](#events)
+    - [Identity](#identity)
+    - [Defaults](#defaults)
+    - [Validation](#validation)
   - [Views](#views)
   - [Templating](#templating)
   - [Routing](#routing)
@@ -19,7 +24,7 @@
 
 # Backbone.js Fundamentals
 
-Learning Backbone with Pluralsight.
+Learning Backbone with Pluralsight. [Docs](https://backbonejs.org/#)
 
 ## Intro
 
@@ -150,15 +155,325 @@ npx http-server -c-1
 
 ## Models
 
-### Overview
+### Purpose of Models
 
-
+- Models form core of application
+- Contain state, logic, behaviour
+- Single point of truth for data
+- Provide a lifecycle
+- Communicate state changes to app by raising events -> changes to a model can ripple through app without direct coupling
 
 ### Defining New Model Types
 
+[Example](define-model-type/defineModelType.js)
+
+* Create new Model types by extending Backbone.Model.
+* Argument passed to `extend` method is an object containing configuration of new model type.
+* Passing empty object `{}` results in a new model type that behaves exactly the same as `Backbone.Model`
+* `extend()` function shared by Model, Collection, Router, View: Establishes inheritance relationship between two objects
+
+```javascript
+// `Vehicle` is a new constructor function that inherits from `Backbone.Model`
+// Starts with uppercase `V` -> convention for constructor function naming in JS
+var Vehicle = Backbone.Model.extend({
+  prop1: '1'
+})
+
+// Create a few model instances
+var v = new Vehicle();
+var v2 = new Vehicle();
+
+// modify a property
+v.prop1 = 'one';
+
+console.log(v.prop1) // one
+console.log(v2.prop1) // 1
+```
+
+Can also define class properties with a second argument to `extend()`. They become available on the type rather than instances of the type:
+
+```javascript
+var Vehicle = Backbone.Model.extend({}, {
+  summary: function() {
+    return 'Vehicles are for travelling'
+  }
+})
+
+Vehicle.summary() // Vehicles are for travelling
+```
+
 ### Instantiating Models
 
+To create a new model object, call its constructor function with the `new` operator
+
+If there's nothing unique about your model, no need to define a custom model type, just use `Backbone.Model`:
+
+```javascript
+var myModel = new Backbone.Model()
+```
+
+Usually will be using custom types:
+
+```javascript
+var Vehicle = Backbone.Model.extend({})
+var ford = new Vehicle()
+```
+
+Common pattern is to instantiate model with property values:
+
+```javascript
+var model = new Backbone.Model({
+  name: 'Jane',
+  age: 52
+})
+```
+
+If model type has an `initialize` function, it gets called when model is instantiated:
+
+```javascript
+var Vehicle = Backbone.Model.extend({
+  initialize: function() {
+    console.log('vehicle created')
+  }
+})
+
+var ford = new Vehicle() // vehicle created
+```
+
 ### Inheritance
+
+Models can inherit from other models:
+
+```javascript
+var Vehicle = Backbone.Model.extend({})
+var Car = Vehicle.extend({})
+```
+
+```javascript
+var A = Backbone.Model.extend({
+  initialize: function() {
+    console.log('initialize A')
+  },
+
+  asString: function() {
+    return JSON.stringify(this.toJSON())
+  }
+})
+
+var a = new A({
+  one: '1',
+  two: '2'
+}) // initialize A
+console.log(a.asString()) // {"one":"1","two":"2"}
+
+var B = A.extend({})
+var b = new B({
+  three: '3'
+}) // initialize A -> B inherits A's constructor
+console.log(b.asString()) // {"three":"3"} -> B inherits A's asString function
+```
+
+Use `instanceof` operator to see the type of objects:
+
+```javascript
+console.log(b instanceof B) // true
+console.log(b instanceof A) // true
+console.log(b instanceof Backbone.Model) // true
+console.log(a instanceof A) // true
+console.log(a instanceof Backbone.Model) // true
+console.log(a instanceof B) // false
+```
+
+### Attributes
+
+Attributes hold a model's data.
+
+Can be set by passing an object ot a model type's constructor, or using `set` method, which accepts a name and value:
+
+```javascript
+var ford = new Vehicle()
+ford.set('type', 'car')
+```
+
+Can also set multiple properties at once:
+
+```javascript
+ford.set({
+  'maximumSpeed': '99',
+  'color': 'blue'
+})
+```
+
+Access attribute values with `get` method:
+
+```javascript
+ford.get('type') // car
+```
+
+`escape` method is similar to `get`, but output is HTML escaped, useful for preventing XSS:
+
+```javascript
+ford.set('description', '<script>alert("script injection!"</script>')
+ford.escape('description') // &lt;script&gt;alert(&quot;script injection!&quot;&lt;/script&gt;
+```
+
+**Demo**
+
+```javascript
+var Vehicle = Backbone.Model.extend({
+  dump: function() {
+    console.log(JSON.stringify(this.toJSON()))
+  }
+})
+
+var v = new Vehicle({
+  type: 'car'
+})
+v.dump() // {"type":"car"}
+
+v.set('color', 'blue')
+v.dump() // {"type":"car","color":"blue"}
+
+v.set({
+  description: "<script>alert('injection!')</script>",
+  weight: 1750
+})
+v.dump() // {"type":"car","color":"blue","description":"<script>alert('injection!')</script>","weight":1750}
+
+$('body').append(v.get('description')) // pops up browser alert box!
+$('body').append(v.escape('description')) // outputs escaped value in the DOM
+```
+
+**Test for an Attribute**
+
+Given a model object, how to know whether it contains an attribute or not? Use `has` predicate method:
+
+```javascript
+var ford = new Vehicle()
+ford.set('type', 'car)
+ford.has('type') // true
+ford.has('year') // false
+```
+
+### Events
+
+[Demo](demos/demos.js)
+
+Models raise events when their state changes -> valuable feature.
+
+This is why you have to use `get` and `set` functions when working with model attributes, so Backbone has a chance to raise events as part of these functions.
+
+To detect a change to a model, listen for `change` event, using `on` function. First arg to `on` is event to listen for, second arg is function to execute when that event is triggered:
+
+```javascript
+ford.on('change', function() {
+  // do something
+})
+```
+
+`change` event is triggered anytime the model is changed.
+
+Can also listen to change to a specific property using "event namespacing":
+
+```javascript
+ford.on('change:color', function() {
+  // do something when color property of ford model instance has changed
+})
+```
+
+Note that if color property of `ford` model is changed, will trigger *both* `change:color` and `change` events:
+
+```javascript
+var ford = new Backbone.Model({
+  type: 'car',
+  color: 'blue'
+})
+
+// bind event handler to change event
+ford.on('change', function() {
+  console.log('something changed')
+})
+
+// register another event handler, but only for changes to color attribute
+ford.on('change:color', function() {
+  console.log('color changed')
+})
+
+// trigger non-color event
+ford.set('type', 'scooter') // something changed
+
+// trigger color change event
+ford.set('color', 'red') // color changed, something changed
+```
+
+**Custom Model Events**
+
+[Example](custom-events/app.js)
+
+Powerful tool for decoupling components.
+
+Can define, trigger, and observe custom model events.
+
+Events are identified by string identifiers.
+
+Convention is to namespace events using `:`.
+
+Use `on` method to bind to an event.
+
+Second argument to `on` function is a callback that will be executed when event is triggered:
+
+```javascript
+ford.on('retired', function() {
+  // do something when custom `retired` event is triggered
+})
+```
+
+Use `trigger` method to trigger a custom event. Any arguments following event name are forwarded to event handler:
+
+```javascript
+ford.trigger('retired')
+```
+
+There's also an `off` method to remove event handler.
+
+`on`, `off`, and `trigger` methods are provided by [Backbone.Events](https://backbonejs.org/#Events) module. Can be included in any JavaScript object, not just Backbone Models.
+
+```javascript
+// Using underscore's extend function, which is similar to Backbone's extend
+// We extend an empty object, then mixin Backbone.Events
+var volcano = _.extend({}, Backbone.Events)
+// now volcano has functions: bind, off, on, once, trigger, unbind, etc
+
+// Register an event handler for a custom event
+// Using namespacing convention: The event is `eruption` and it's in the `disaster` namespace
+volcano.on('disaster:eruption', function(options) {
+  if (options) {
+    console.log('duck and cover - ' + options.plan)
+  } else {
+    console.log('duck and cover')
+  }
+})
+
+// Trigger our custom event
+volcano.trigger('disaster:eruption') // duck and cover
+
+// Can also forward additional arguments to event handler
+volcano.trigger('disaster:eruption', {plan: 'run'}) // duck and cover - run
+
+// Remove all event handlers for the `disaster:eruption` event
+volcano.off('disaster:eruption')
+volcano.trigger('disaster:eruption') // nothing happens
+```
+
+### Identity
+
+**Model Identity**
+
+WIP...
+
+### Defaults
+
+### Validation
 
 ## Views
 
