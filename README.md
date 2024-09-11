@@ -15,6 +15,10 @@
     - [Defaults](#defaults)
     - [Validation](#validation)
     - [toJSON](#tojson)
+    - [save, fetch, and destroy](#save-fetch-and-destroy)
+  - [Views](#views)
+    - [Overview](#overview)
+    - [Instantiating Views](#instantiating-views)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
@@ -577,4 +581,40 @@ console.log(car.get('color')) // pink -> because we passed validate option, it h
 
 ### toJSON
 
+Converts a model's attributes to a JavaScript object.
+
+**NOTE:** Does NOT return a JSON string representation of the model as one might expect from the function name!
+
+It returns an object containing copies of the model's attributes.
+
+Useful as a first step in serializing a model or when you just want to inspect the model's state.
+
+Object returned from `toJSON()` can be passed to `JSON.stringify(...)` to get a JSON string representation of the model.
+
+```javascript
+var ford = new Vehicle()
+ford.set('type', 'car')
+var attrs = ford.toJSON()
+console.log(attrs) // { type: 'car' }
+console.log(JSON.stringify(attrs)) // "{"type": "car"}"
+```
+
+### save, fetch, and destroy
+
+`save`, `fetch` and `destroy` methods are for synchronizing the model's state with the server.
+
+`save` performs insert or update, depending on state of the model:
+* If model is new and has never been saved to server before, `save` will perform an insert on server.
+* If model is existing and has previously been inserted, `save` will perform an update on server.
+
+`fetch` updates model with server-side state
+
+`destroy` deletes model from server
+
+## Views
+
 WIP...
+
+### Overview
+
+### Instantiating Views
