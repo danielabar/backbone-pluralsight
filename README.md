@@ -14,11 +14,7 @@
     - [Identity](#identity)
     - [Defaults](#defaults)
     - [Validation](#validation)
-  - [Views](#views)
-  - [Templating](#templating)
-  - [Routing](#routing)
-  - [Collections](#collections)
-  - [Connecting to a Server](#connecting-to-a-server)
+    - [toJSON](#tojson)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
@@ -469,18 +465,116 @@ volcano.trigger('disaster:eruption') // nothing happens
 
 **Model Identity**
 
-WIP...
+`id` property is model's persistent identity and is unique.
+
+`id` is `undefined` until model has been saved, meaning saved on server, at this point, the model's `id` gets populated with the server's `id` for this model.
+
+`cid` is temporary identifier used until model gets assigned `id`
+
+Model objects have `isNew()` function to test if model has `id` or not, i.e. has it been saved to server or not.
+
+```javascript
+var ford = new Backbone.Model({})
+ford.id // undefined
+ford.cid // c0
+ford.isNew() // true
+```
 
 ### Defaults
 
+`defaults` property specifies default values for attributes that are not set in the constructor.
+
+Useful for documenting a model type's properties.
+
+```javascript
+var Vehicle = Backbone.Model.extend({
+  defaults: {
+    'color': 'white',
+    'type': 'car'
+  }
+})
+
+// Create a new Vehicle model, but do not initialize any values in constructor.
+var car = new Vehicle()
+car.get('color') // white
+car.get('type') // car
+```
+
 ### Validation
 
-## Views
+[Example](validation/app.js)
 
-## Templating
+Backbone provides two functions for model validation:
 
-## Routing
+1. `validate` Tests validity of model and returns errors if any are found.
+2. `isValid` Returns boolean true/false if model is currently valid according to the `validate` method
 
-## Collections
+A model can become invalid for example, if `set(...)` is called in a way that does not trigger validation.
 
-## Connecting to a Server
+`validate` is called by Backbone prior to performing `set` or `save` operations.
+
+Actually, requires `{validate: true}` option passed to `set` if you want to trigger validation. See [Model validate docs](https://backbonejs.org/#Model-validate) for details.
+
+If call `save` and model is invalid, operation is cancelled and error event is triggered on model.
+
+To add validation on model, must provide implementation of `validate` method when declaring model type.
+
+`validate` method will be called with a hash of the model instance's attributes.
+
+Must register an error event handler on the model instance to detect validation issues.
+
+Callback that handles validation errors gets called with a reference to the model instance that raised the error, and the error. TODO: What if there's more than one validation error???
+
+```javascript
+var Vehicle = Backbone.Model.extend({
+  validate: function (attrs) {
+    console.log('=== RUNNING VEHICLE VALIDATION ===')
+    // Define array of valid colors
+    var validColors = ['white', 'red', 'blue', 'yellow']
+
+    // Define function to validate model color
+    var colorIsValid = function(attrs) {
+      // if `color` attribute is not set, that's valid
+      if (!attrs.color) return true
+
+      // return true only if the model's color is one of validColors
+      return _(validColors).include(attrs.color)
+    }
+
+    // Now we can use the colorIsValid function
+    if (!colorIsValid(attrs)) {
+      return "color must be one of: " + validColors.join(", ")
+    }
+  }
+})
+
+var car = new Vehicle()
+
+// Used to be `error`, now its `invalid`
+car.on('invalid', function(model, error) {
+  console.log(error)
+  // handle validation errors here
+})
+
+// no validation errors because we don't have any rules for the `foo` attribute
+car.set('foo', 'bar')
+console.log(car.isValid()) // true
+
+// populate a valid color
+car.set('color', 'blue')
+console.log(car.isValid()) // true
+console.log(car.get('color')) //blue
+
+// populate a invalid color
+car.set('color', 'pink')
+console.log(car.isValid()) // false, color must be one of: white, red, blue, yellow
+console.log(car.get('color')) // pink -> in this case, it did populate an invalid color
+
+// try validate option
+car.set('color', 'mauve', {validate: true}) // color must be one of: white, red, blue, yellow
+console.log(car.get('color')) // pink -> because we passed validate option, it hangs on to last set color
+```
+
+### toJSON
+
+WIP...
