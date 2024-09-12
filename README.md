@@ -29,6 +29,9 @@
     - [Handlebars Templates](#handlebars-templates)
     - [Precompilation](#precompilation)
   - [Routing](#routing)
+    - [Client-Side Routing](#client-side-routing)
+    - [A Document Router Demo](#a-document-router-demo)
+    - [Defining Routes](#defining-routes)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
@@ -1270,3 +1273,41 @@ handlebars <input> -f <output>
 ```
 
 ## Routing
+
+### Client-Side Routing
+
+Client-side routes are a way to trigger a function when the browser url changes.
+
+Backbone routing parses the url and matches teh url to the correct route handler.
+
+Not the same as server side MVC actions.
+
+Only use client-side routing when:
+
+* there are substantial changes to application context
+* to generate a bookmarkable URL
+* to navigate browser history that can be navigated backwards and forwards
+
+Each route results in two different scenarios.
+
+1. Routing a browser initiated request (i.e. user enters a URL in the browser's address bar), refreshes the browser, or clicks a link. This results in a request to the server, which returns a response, then Backbone attempts to Match the resulting URL to a route handler function.
+
+![client side routing 1](doc-images/client-side-routing-1.jpg "client side routing 1")
+
+2. Routing a client initiated request (i.e. client side app undergoes a significant state transition such as changing from one page to another). In this case, can programmatically tell the router to update the URL, which triggers routing. This does NOT result in a request to the server.
+
+![client side routing 2](doc-images/client-side-routing-2.jpg "client side routing 2")
+
+**Recommendation:** Don't use routes unless you want to change browser URL to provide an addressable state or bookmark.
+
+### A Document Router Demo
+
+[Demo](exercises/doc-router-demo/index.html)
+
+Requirement: Given a set of documents. When a user selects a document, Then that document is displayed. Each document has a title and some content.
+
+When the demo above runs, the url will be `http://127.0.0.1:8080/doc-router-demo/#contents`
+
+(given running a static web server `npx http-server -c-1` in the `exercises` sub-dir of this project)
+
+### Defining Routes

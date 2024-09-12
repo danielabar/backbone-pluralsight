@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+  <title>Doc Router Demo</title>
+
+  <!-- jQuery 1.7.2 CDN - Backbone depends on jQuery for DOM manipulation -->
+  <script src="https://code.jquery.com/jquery-1.7.2.min.js"></script>
+
+  <!-- Underscore.js CDN - Backbone depends on Underscore for utility functions -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/underscore.js/1.13.6/underscore-min.js"></script>
+
+  <!-- Backbone.js CDN - The Backbone library itself -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/backbone.js/1.4.1/backbone-min.js"></script>
+</head>
+
+<body>
+  <script type="text/javascript">
+    // Create a collection of Backbone models representing documents
+    var documents = [
+      new Backbone.Model({
+        title: 'JavaScript Modules',
+        content: 'JavaScript modules allow you to split your code into reusable pieces. This helps in organizing your code and avoiding global scope pollution.'
+      }),
+      new Backbone.Model({
+        title: 'Module Systems',
+        content: 'Module systems define how code is structured and shared between different parts of an application. Common module systems include CommonJS, AMD, and ES6 modules.'
+      })
+    ];
+
+    var eventAggregator = _.extend({}, Backbone.Events)
+    eventAggregator.on('document:selected', function(document) {
+      var urlPath = 'view/' + document.get('title')
+      router.navigate(urlPath, {trigger: true})
+    })
+
+    // Define a Backbone view for rendering the entire list of documents
+    var ContentsView = Backbone.View.extend({
+      tagName: 'ul',  // The view will render as an unordered list (<ul>)
+
+      // Render method loops through the collection and appends document titles
+      render: function () {
+        _(this.collection).each(function (document) {
+          // For each document, create a DocumentListView and append it to the <ul>
+          this.$el.append(new DocumentListView({ model: document }).render().el)
+        }, this);  // 'this' is passed to ensure the context remains the view
+        return this;  // Return 'this' to allow chaining
+      }
+    });
+
+    // Define a Backbone view for rendering each individual document title
+    // Also define click event handler so user can click any document to view its details
+    // Since view doesn't have access to router, it will raise a global event
+    var DocumentListView = Backbone.View.extend({
+      tagName: 'li',  // Each document will be rendered as a list item (<li>)
+
+      events: {
+        'click': function() {
+          eventAggregator.trigger('document:selected', this.model)
+        }
+      },
+
+      // Render method displays the title of the document inside the <li>
+      render: function () {
+        this.$el.html(this.model.get('title'));  // Set the HTML to the document's title
+        return this;  // Return 'this' to enable method chaining
+      }
+    });
+
+    var DocumentView = Backbone.View.extend({
+      render: function() {
+        this.$el.append($('<h1>').text(this.model.get('title')));
+        this.$el.append($('<div>').text(this.model.get('content')));
+        return this;
+      }
+    })
+
+    // Define a Backbone router to handle URL routes
+    var DocumentRouter = Backbone.Router.extend({
+      // Define the route for displaying document contents
+      routes: {
+        'contents': 'contents',  // When the URL hash is '#contents', call the 'contents' function
+        'view/:title': 'viewDocument'
+      },
+
+      // This function renders the ContentsView when the 'contents' route is triggered
+      contents: function () {
+        // Replace the entire <body> content with the rendered list of documents
+        $('body').html(new ContentsView({ collection: documents }).render().el);
+      },
+
+      // Router will call this function with title because of `:title` in the route definition
+      viewDocument: function(title) {
+        var selectedDocument = _(documents).find(function (document) {
+          return document.get('title') === title
+        })
+
+        // Use jQuery to clear document body, then append a new view
+        $('body').empty().append(new DocumentView({model: selectedDocument}).render().el)
+      }
+    });
+
+    // Create an instance of the router
+    var router = new DocumentRouter();
+
+    // Start Backbone's history management, which enables route handling
+    Backbone.history.start();
+
+    // Navigate to the 'contents' route programmatically and trigger it immediately
+    router.navigate('contents', { trigger: true });
+  </script>
+</body>
+
+</html>
