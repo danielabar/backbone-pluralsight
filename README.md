@@ -19,6 +19,11 @@
   - [Views](#views)
     - [Instantiating Views](#instantiating-views)
     - [The el Property](#the-el-property)
+    - [render](#render)
+    - [make](#make)
+    - [events](#events-1)
+    - [View Guidelines](#view-guidelines)
+  - [Templating](#templating)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
@@ -754,4 +759,241 @@ $('body').prepend(myView.el)
 
 ### The el Property
 
-WIP...
+[Example](exercises/views4/app.js)
+
+All views have `el` property that references the views' DOM element.
+
+Every view maps to exactly one DOM element, this element may or may not have already been added to the document.
+
+```javascript
+// create a new view, passing in a selector, in this case, we select the body element
+// any valid jQuery selector is allowed
+var v = new Backbone.View({el: 'body'})
+v.el // <body></body>
+```
+
+**$el**
+
+Another important view property: `$el` is the cached jQuery wrapper around `el`.
+
+Useful to avoid repeatedly calling `$(this.el)`.
+
+```javascript
+var v = new Backbone.View({el: 'body'})
+console.log(v.el) // <body>...</body>
+console.log(v.$el)
+console.log(v.$el.html()) // inside contents of body: <div id="test">...</div>
+```
+
+**this.$**
+
+`this.$` is the jQuery function scoped to the current view.
+
+`this.$('selector')` === `this.$el.find('selector')`
+
+Using `this.$` means the jQuery selectors you use don't need to be unique for the whole page, only for that view.
+
+### render
+
+`render()` function renders views element `.el`, usually based on view's model data.
+
+Default implementation is no-op, you should provide an implementation with your view definitions that generates the markup you require.
+
+By convention, the render method returns `this`, which is the view instance? Makes it easy to chain method calls.
+
+```javascript
+var V = Backbone.View.extend({
+  render: function () {
+    this.$el.html('some content')
+    return this
+  }
+})
+```
+
+**Combining Views and Models**
+
+[Example](exercises/views5/app.js)
+
+Generating markup from models and binding views to model's change events -> Core Backbone development.
+
+Pass model to views's constructor:
+
+```javascript
+var v = new View({
+  model: myModel
+})
+```
+
+Bind the view's render method - this is a common pattern where event handler is attached to model change, and view is rendered by this handler:
+
+```javascript
+myModel.on('change', function() {
+  $('body').append(v.render().el)
+})
+```
+
+A given model can provide data for many views. If any changes occur to the model, all the bound views are automatically updated.
+
+```javascript
+// a view that auto refreshes when its model data changes
+// use `initialize` method to setup binding to the model
+// `this.model` is how to reference the view's model
+// when the model changes, we want to re-render the view
+// need to pass the view object `this` to the model's `on` method to set the context for the event handler
+var RefreshingView = Backbone.View.extend({
+  initialize: function() {
+    this.model.on('change', function() {
+      this.render();
+    }, this)
+  },
+
+  // access the views jQuery wrapped element with `this.$el`
+  // use jQuery's `html` function to replace the contents of the element
+  // specifically we replace the content with the model's `text` property.
+  render: function() {
+    this.$el.html(this.model.get('text'))
+  }
+})
+
+// Create a new model with a `text` property that is the current date
+var m = new Backbone.Model({
+  text: new Date().toString()
+})
+
+// Create an instance of the RefreshingView with the model we just created
+// And the element being the document body
+var rf = new RefreshingView({
+  model: m,
+  el: 'body'
+})
+
+// Now let's render the view
+rf.render()
+
+// To demonstrate auto updating view, use a timer to keep updating the model every second
+setInterval(() => {
+  m.set('text', new Date().toString())
+}, 1000);
+
+// Renders and updates every one second:
+// <body>
+//  <text>Thu Sep 12 2024 08:37:20 GMT-0400 (Eastern Daylight Time)</text>
+// </body>
+
+// Refreshing page updates the date display
+// NOTE: <text>...</text> is NOT a valid html element
+```
+
+### make
+
+NOTE: Doesn't work anymore? Can't find in docs and getting JS error
+
+`make` method: Use when need a lightweight technique for generating DOM elements, without templates.
+
+Requires three arguments:
+1. Type of element to create
+2. Attributes to set on element
+3. Value of element
+
+[Example](exercises/views6/app.js)
+
+```javascript
+var el = new Backbone.View().make(
+  'h3',
+  {class: 'not-very-important'},
+  'Preliminary Version'
+)
+console.log(el)
+// <h3 class="not-very-important">Preliminary Version</h3>
+```
+
+### events
+
+[Example](exercises/views7/app.js)
+
+Declarative syntax to register handlers for DOM events.
+
+Backbone Views should be self contained -> should only handle events that happen within their elements!
+
+```javascript
+var FormView = Backbone.View.extend({
+  // Declare that `handleClick` function should handle `click` events
+  // on elements within this view that match the `.clickable` selector
+  events: {
+    'click .clickable': 'handleClick'
+  },
+  handleClick: function() {
+    // do something...
+  }
+})
+```
+
+`events` is a property on the View, it's a hash where the key is of the form: eventName cssSelector.
+
+Value in the `events` has is the name of the event handler function, which is also declared in the view.
+
+In the above example, it's equivalent to imperative style jQuery code: `this.$('clickable').click(handleClick)`
+
+Another example with handling multiple events:
+
+```javascript
+var FormView = Backbone.View.extend({
+  // Define DOM events for this view
+  events: {
+    'click .clickable': 'handleClick', // Listen for clicks on elements with the `clickable` class and call `handleClick`
+    'change': 'handleChange' // Listen for change event on ALL elements within this view because there's no selector
+  },
+
+  // Define the render function to update the HTML content of the view
+  render: function() {
+    // Set the inner HTML of the view's element with two input fields
+    this.$el.html('<input type="text" class="clickable" placeholder="clickable" /> <input type="text" />')
+    return this // Return the view instance for method chaining
+  },
+
+  // Event handler for when a clickable element is clicked
+  handleClick: function () {
+    console.log('handleClick')
+  },
+
+  // Event handler for when ANY element in the view triggers a change event
+  handleChange: function() {
+    console.log('handleChange')
+  }
+})
+
+// Create a new instance of FormView
+var fv = new FormView()
+
+// Append the rendered view to the body element in the DOM
+$('body').append(fv.render().el)
+
+// Renders markup as shown below
+//
+// when the first input is clicked on, `handleClick` is printed to console
+// when second input is clicked on, nothing happens
+//
+// In dev tools Elements -> Event Listeners, can see `click` event with pointer to
+// app.js:11 line where `handleClick` function is defined.
+//
+// Also both inputs have a `change` handler defined,
+// try typing into them and hitting Enter or Tab -> triggers change event
+//
+// <body>
+//   <div>
+//     <input type="text" class="clickable" placeholder="clickable">
+//     <input type="text">
+//   </div>
+// </body>
+```
+
+### View Guidelines
+
+* Views should render *self-contained* DOM elements
+  * Do not attach to existing elements (other than element passed to view's constructor)
+  * Do not access DOM elements the view does not own -> otherwise testing becomes difficult
+* Pass `el` to constructor of self-updating view rather than generating an element by the view (otherwise element will never get added to document?)
+
+## Templating
+
+wip...
