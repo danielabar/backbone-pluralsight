@@ -32,6 +32,9 @@
     - [Client-Side Routing](#client-side-routing)
     - [A Document Router Demo](#a-document-router-demo)
     - [Defining Routes](#defining-routes)
+    - [Push State and Hash Fragments](#push-state-and-hash-fragments)
+  - [Collections](#collections)
+    - [Defining New Collection Types](#defining-new-collection-types)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
@@ -1311,3 +1314,101 @@ When the demo above runs, the url will be `http://127.0.0.1:8080/doc-router-demo
 (given running a static web server `npx http-server -c-1` in the `exercises` sub-dir of this project)
 
 ### Defining Routes
+
+Define routes by defining a type that extends Backbone.Router.
+
+The `routes` hash pairs a route pattern, to a route handling function.
+
+If the url matches the route pattern, then the corresponding route handler is invoked.
+
+Route pattern can include parameter parts prefixed by `:`. If matched, the parameter parts are passed as arguments to the route handler function.
+
+All route handler functions must be defined within the router.
+
+```javascript
+var Workspace = Backbone.Router.extend({
+  routes: {
+    "search/:query": "search"
+  },
+
+  search: function(query) {
+    // ...
+  }
+})
+```
+
+**navigate**
+
+`navigate` function used to update browser's address and trigger routing.
+
+`navigate` is purely a client side function, it does *NOT* trigger a request to server.
+
+It does not reload the page or clear any state.
+
+It only updates the url, and optionally invokes a route handler.
+
+First arg to `navigate` is the new url path. Second parameter tells Backbone if it should trigger routing.
+
+```javascript
+var router = new Workspace()
+Backbone.history.start()
+
+router.navigate('search/cats', {
+  trigger: true
+})
+```
+
+A typical Backbone app will have at least one router, could have many.
+
+[Example](exercises/router/app.js)
+
+```javascript
+// Define router
+var Workspace = Backbone.Router.extend({
+  routes: {
+    'search/:query': 'search'
+  },
+
+  search: function(query) {
+    console.log(`search called for ${query}`)
+  }
+})
+
+// Instantiate router so we can use it
+var router = new Workspace()
+
+// Tell Backbone to start listening for address/history changes
+Backbone.history.start()
+
+// Trigger client side navigation
+// trigger: true tells Backbone to also execute the route handler
+// trigger: false tells Backbone to only change url
+router.navigate('search/cats', {trigger: true})
+
+// When this app runs, browser url is: http://127.0.0.1:8080/router/#search/cats
+// console has: search called for cats
+```
+
+### Push State and Hash Fragments
+
+HTML5 History API has a way to change browser url without reloading the page. This is what Backbone's `navigate` method uses under the hood:
+
+```javascript
+window.history.pushState(...)
+```
+
+**Hash Fragments**
+
+If browser doesn't support HTML5 history api, will use hash fragments instead:
+
+```
+https://somedomain.com/#search/cats
+```
+
+In above example `search/cats` is the hash fragment.
+
+Hash fragments not sent to server.
+
+## Collections
+
+### Defining New Collection Types
