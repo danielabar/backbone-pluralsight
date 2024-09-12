@@ -35,6 +35,7 @@
     - [Push State and Hash Fragments](#push-state-and-hash-fragments)
   - [Collections](#collections)
     - [Defining New Collection Types](#defining-new-collection-types)
+    - [Sorting](#sorting)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
@@ -1411,4 +1412,121 @@ Hash fragments not sent to server.
 
 ## Collections
 
+Collections group related models (of the same type) together.
+
+Collections can be used as the basis for a view rather than an individual model.
+
+Can bind a collection's change event to the view's render function -> automatically keep them in sync.
+
+Container for multiple models of the same type.
+
+Retrieve models from the server.
+
+Create models and save them to the server.
+
+Group models by some attribute.
+
+Collection is array-like object, has length property, can be indexed, but not with square brackets, use `at` method.
+
+[Example](exercises/collections/app.js)
+
+```javascript
+var c = new Backbone.Collection([
+  {name: 'thing'},
+  {name: 'other'}
+])
+
+console.log(c.length) // 2
+console.log(c.at(0)) // Backbone.Model with name property and value thing
+```
+
+Pass array to constructor:
+
+```javascript
+var c = new Backbone.Collection([
+  {name: 'thing'},
+  {name: 'other'}
+])
+
+console.log(c.length) // 2
+console.log(c.at(0)) // Backbone.Model with name property and value thing
+```
+
 ### Defining New Collection Types
+
+Define a new type of collection by extending `Backbone.Collection`
+
+Specify the type of model that the collection holds
+
+```javascript
+var Vehicles = Backbone.Collection.extend({
+  model: Vehicle
+})
+```
+
+[Example](exercises/collections2/app.js)
+
+```javascript
+var Vehicle = Backbone.Model.extend({})
+
+var Vehicles = Backbone.Collection.extend({
+  model: Vehicle
+})
+
+var vehicles = new Vehicles([
+  { color: 'blue' },
+  { color: 'red' }
+])
+
+console.log(vehicles.length) // 2
+
+// serialize second element in collection
+console.log(JSON.stringify(vehicles.at(1))) // {"color":"red"}
+
+// serialize entire collection
+console.log(JSON.stringify(vehicles)) // [{"color":"blue"},{"color":"red"}]
+```
+
+Collections can also have class properties, pass as second arg to `extend`:
+
+```javascript
+var Vehicles = Backbone.Collection.extend(
+  { model: Vehicle },
+  { myClassProperty: function () {} }
+)
+```
+
+[Example](exercises/collections3/app.js)
+
+```javascript
+var Vehicle = Backbone.Model.extend({})
+
+var Vehicles = Backbone.Collection.extend({
+  model: Vehicle
+}, {
+  oneVehicle: function() {
+    return new Vehicle({color: 'green'})
+  }
+})
+
+// Use class property
+var v = Vehicles.oneVehicle()
+console.log(JSON.stringify(v)) // {"color":"green"}
+```
+
+### Sorting
+
+Collections are sorted by insertion order (default) or comparator.
+
+Comparator is function that knows how to order models.
+
+```javascript
+var Vehicles = Backbone.Collection.extend({
+  model: Vehicle,
+  comparator: function(vehicle) {
+    return vehicle.get('sequence')
+  }
+})
+```
+
+Left at 1:03
