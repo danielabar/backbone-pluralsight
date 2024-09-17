@@ -36,6 +36,9 @@
   - [Collections](#collections)
     - [Defining New Collection Types](#defining-new-collection-types)
     - [Sorting](#sorting)
+    - [Instantiating Collections](#instantiating-collections)
+    - [add() and remove()](#add-and-remove)
+    - [at()](#at)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
@@ -216,7 +219,7 @@ var Vehicle = Backbone.Model.extend({}, {
   }
 })
 
-Vehicle.summary() // Vehicles are for travelling
+Vehicle.summary() // Vehicles are for traveling
 ```
 
 ### Instantiating Models
@@ -1516,9 +1519,11 @@ console.log(JSON.stringify(v)) // {"color":"green"}
 
 ### Sorting
 
+[Example 1](exercises/collections-sorting/app.js)
+
 Collections are sorted by insertion order (default) or comparator.
 
-Comparator is function that knows how to order models.
+Comparator is function that knows how to order models. It accepts a single model instance and returns the attribute by which these type of models should be sorted:
 
 ```javascript
 var Vehicles = Backbone.Collection.extend({
@@ -1527,6 +1532,152 @@ var Vehicles = Backbone.Collection.extend({
     return vehicle.get('sequence')
   }
 })
+
+var vehicles = new Vehicles([
+  { color: 'red', sequence: 2},
+  { color: 'blue', sequence: 1}
+])
+
+console.log(JSON.stringify(vehicles)) //[{"color":"blue","sequence":1},{"color":"red","sequence":2}]
 ```
 
-Left at 1:03
+Another type of comparator function accepts 2 args, which are instances of the model type the collection holds. Function returns:
+- `-1` if arguments are already in correct order (i.e. `vehicle1` is less than `vehicle2`)
+- `0` if arguments are the same wrt order
+- `1` if arguments are in reverse order (i.e. `vehicle1` is greater than `vehicle2`)
+
+[Example 2](exercises/collections-sorting-2/app.js)
+
+```javascript
+var Vehicle = Backbone.Model.extend({
+  prop1: '1'
+})
+
+var Vehicles = Backbone.Collection.extend({
+  model: Vehicle,
+  comparator: function(vehicle1, vehicle2) {
+    return vehicle1.get('sequence') < vehicle2.get('sequence') ? -1 : 1
+  }
+})
+
+var vehicles = new Vehicles([
+  { color: 'red', sequence: 2},
+  { color: 'blue', sequence: 1}
+])
+
+console.log(JSON.stringify(vehicles)) // [{"color":"blue","sequence":1},{"color":"red","sequence":2}]
+```
+
+### Instantiating Collections
+
+[Example](exerciess/collections-new/app.js)
+
+To create a new collection object, call its constructor function with `new` operator.
+
+If no special behaviour required, use the simplest technique:
+
+```javascript
+var collection = new Backbone.Collection()
+```
+
+More common use case is to instantiate custom types:
+
+```javascript
+// Vehicles is a custom collection type
+var Vehicles = Backbone.Collection.extend({})
+
+// fords is a new object created from the Vehicles collection type
+var fords = new Vehicles()
+```
+
+Pass collections data to constructor:
+
+```javascript
+var collection = new Backbone.Collection([
+  model1,
+  model2,
+  model3
+])
+```
+
+If collection has `initialize` function, will be invoked after constructor is called
+
+### add() and remove()
+
+[Example](exercises/collections-ar/app.js)
+
+These functions work as expected:
+
+```javascript
+var model = new Backbone.Model()
+collection.add(model)
+```
+
+Use `at` option to insert model at specific index and `silent` option to suppress the `add` event:
+
+```javascript
+var model = new Backbone.Model()
+collection.add(model, {at: 2})
+collection.at(2) // model
+```
+
+`add()` and `remove()` can operate on a single model or array of models:
+
+```javascript
+collection.remove(model)
+collection.remove([model2, model3])
+```
+
+```javascript
+var collection = new Backbone.Collection()
+collection.add(new Backbone.Model({name: 'Fred', age: 6}))
+console.log(JSON.stringify(collection)) // [{"name":"Fred","age":6}]
+
+// Not necessary to add Backbone model, can also add plain JavaScript object
+// Collection will transform the plain JavaScript object into a Backbone Model
+collection.add({name: 'Jane', age: 7})
+console.log(JSON.stringify(collection)) // [{"name":"Fred","age":6},{"name":"Jane","age":7}]
+
+// Can add array of Backbone Models
+collection.add([
+  new Backbone.Model({name: 'Sue', age: 28}),
+  new Backbone.Model({name: 'Dave', age: 74})
+])
+
+// Models are listed in the order in which they were added to the collection
+console.log(JSON.stringify(collection)) // [{"name":"Fred","age":6},{"name":"Jane","age":7},{"name":"Sue","age":28},{"name":"Dave","age":74}]
+
+// Can add array of plain JS objects
+collection.add([
+  {name: 'Lisa', age: 1},
+  {name: 'Sarah', age: 2}
+])
+console.log(JSON.stringify(collection))
+// [{"name":"Fred","age":6},{"name":"Jane","age":7},{"name":"Sue","age":28},{"name":"Dave","age":74},{"name":"Lisa","age":1},{"name":"Sarah","age":2}]
+
+collection.remove(collection.at(1))
+console.log(JSON.stringify(collection))
+// removed second element which was Jane
+// app.js:28 [{"name":"Fred","age":6},{"name":"Sue","age":28},{"name":"Dave","age":74},{"name":"Lisa","age":1},{"name":"Sarah","age":2}]
+
+// When model is added to collection, it triggers the `add` event that you can optionally handle
+collection.on('add', function(model, col, options) {
+  console.log('added ' + model.get('name') + ' at index ' + options.index)
+})
+collection.add({name: 'Troy', age: 12}) // added Troy at index undefined
+// NOTE: options.index only populated if used `at` option when calling collection.add
+
+
+// when adding, can also specify an options obj
+collection.add({name: 'Eric', age: 64}, {at: 3}) // added Eric at index 3
+console.log(JSON.stringify(collection))
+// NOTE that index is 0-based
+// [{"name":"Fred","age":6},{"name":"Sue","age":28},{"name":"Dave","age":74},{"name":"Eric","age":64},{"name":"Lisa","age":1},{"name":"Sarah","age":2},{"name":"Troy","age":12}]
+
+// Use `silent` option to avoid triggering the `add` event
+collection.add({name: 'Erica', age: 74}, {at: 3, silent: true})
+console.log(JSON.stringify(collection))
+// [{"name":"Fred","age":6},{"name":"Sue","age":28},{"name":"Dave","age":74},{"name":"Erica","age":74},{"name":"Eric","age":64},{"name":"Lisa","age":1},{"name":"Sarah","age":2},{"name":"Troy","age":12}]
+```
+
+### at()
