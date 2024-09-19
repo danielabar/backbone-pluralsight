@@ -39,6 +39,7 @@
     - [Instantiating Collections](#instantiating-collections)
     - [add() and remove()](#add-and-remove)
     - [at()](#at)
+    - [get() and getByCid()](#get-and-getbycid)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
@@ -1681,3 +1682,18 @@ console.log(JSON.stringify(collection))
 ```
 
 ### at()
+
+[Example](exercises/collections-at/app.js)
+
+`at()` retrieves a model from collection by index -> provides array-like access to models in collection.
+
+Indexes are 0-based.
+
+```javascript
+collection.at(0) // first model
+collection.at(collection.length - 1) // last model
+```
+
+### get() and getByCid()
+
+WIP...
