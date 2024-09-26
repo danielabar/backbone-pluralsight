@@ -40,6 +40,8 @@
     - [add() and remove()](#add-and-remove)
     - [at()](#at)
     - [get() and getByCid()](#get-and-getbycid)
+    - [Working with Collections](#working-with-collections)
+    - [Collection Events](#collection-events)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
@@ -1696,4 +1698,63 @@ collection.at(collection.length - 1) // last model
 
 ### get() and getByCid()
 
-WIP...
+[Example](exercises/collections-get/app.js)
+
+`get()` retrieves model from collection by id:
+
+```javascript
+collection.get(1)
+```
+
+If model hasn't been saved yet, it won't have an `id` but will have a `cid`. In that case, use:
+
+NOPE - getByCid no longer a function in Backbone!
+
+```javascript
+collection.getByCid('c0')
+```
+
+`cid` is "client identifier", temporary identifier used until model gets assigned `id` (when persisted).
+
+### Working with Collections
+
+Backbone proxies some underscore.js collection functions.
+
+Most commonly used `forEach` - execute a function once for each item in the collection:
+
+```javascript
+collection.forEach(function(item) {
+  print(item)
+})
+
+// alternative:
+collection.forEach(print)
+```
+
+Another common: `map` to produce new array of values:
+
+```javascript
+collection.map(function(item) {
+  // `transform` is some function defined elsewhere that returns a value
+  return transform(item)
+})
+```
+
+`reduce` iterates over items in collection and produces aggregate results.
+
+```javascript
+var collection = new Backbone.Collection([
+  {name: 'Fred', age: 6},
+  {name: 'Sue', age: 29},
+  {name: 'Dave', age: 74}
+])
+
+// hold running total of ages
+var start = 0
+
+// `memo` is running total, `item` is current item being processed
+var collectiveAge = collection.reduce(function(memo, item) {
+}, start)
+```
+
+### Collection Events
