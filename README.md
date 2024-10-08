@@ -1754,7 +1754,54 @@ var start = 0
 
 // `memo` is running total, `item` is current item being processed
 var collectiveAge = collection.reduce(function(memo, item) {
+  return memo + item.get('age')
 }, start)
+console.log(collectiveAge) // 109 (6 + 29 + 74)
 ```
 
+`find` used to search for a single model within a collection
+
+```javascript
+var collection = new Backbone.Collection([
+  {name: 'Fred', age: 6},
+  {name: 'Sue', age: 29},
+  {name: 'Dave', age: 74}
+])
+
+var dave = collection.find(function(model) {
+  // returns true if current model matches what we're searching for
+  return mode.get('name') === 'Dave'
+})
+console.log(JSON.stringify(dave)) // returns the Dave model from collection
+```
 ### Collection Events
+
+[Example](exercises/collection-events/app.js)
+
+Collections raise events when models added/removed via `add` and `remove` event:
+
+```javascript
+collection.on('add', function(model, collection) {
+  console.log(JSON.stringify(model) + ' added')
+})
+
+collection.on('remove', function(model, collection) {
+  console.log(JSON.stringify(model) + ' removed')
+})
+```
+
+Collections forward model change events:
+
+[Example](exercises/collection-events-model/app.js)
+
+```javascript
+// called when any model in collection is changed
+collection.on('change', function(model, _options) {
+  console.log(JSON.stringify(model) + ' changed')
+})
+
+// called when any model in collection has its name property changed
+collection.on('change:name', function(model) {
+  console.log(JSON.stringify(model) + ' changed')
+})
+```
